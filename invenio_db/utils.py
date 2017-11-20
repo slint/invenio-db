@@ -25,6 +25,9 @@
 
 """Invenio-DB utility functions."""
 
+import warnings
+from contextlib import contextmanager
+
 from flask import current_app
 from sqlalchemy.engine import reflection
 from werkzeug.local import LocalProxy
@@ -89,3 +92,14 @@ def drop_alembic_version_table():
         alembic_version = _db.Table('alembic_version', _db.metadata,
                                     autoload_with=_db.engine)
         alembic_version.drop(bind=_db.engine)
+
+
+@contextmanager
+def supress_warning(**kwargs):
+    """Supresses warnings.
+
+    :param kwargs: Passed to `warnings.filterwarnings`.
+    """
+    warnings.filterwarnings('ignore', **kwargs)
+    yield
+    warnings.resetwarnings()

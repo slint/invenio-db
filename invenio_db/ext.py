@@ -35,6 +35,15 @@ from sqlalchemy_utils.functions import get_class_by_table
 
 from .cli import db as db_cmd
 from .shared import db
+from .utils import supress_warning
+
+_SA_DECLARATIVE_BASE_WARNING = (
+    'This declarative base already contains a class with the same class name '
+    'and module name as sqlalchemy_continuum.model_builder.'
+    'RecordMetadataVersion')
+
+_SA_MAPPER_WARNING = (
+    'On mapper Mapper|RecordMetadataVersion|records_metadata_version')
 
 
 class InvenioDB(object):
@@ -93,13 +102,15 @@ class InvenioDB(object):
         sa.orm.configure_mappers()
         # Ensure that versioning classes have been built.
         if app.config['DB_VERSIONING']:
-            manager = self.versioning_manager
-            if manager.pending_classes:
-                manager.builder.configure_versioned_classes()
-            elif 'transaction' not in database.metadata.tables:
-                manager.declarative_base = database.Model
-                manager.create_transaction_model()
-                manager.plugins.after_build_tx_class(manager)
+            with supress_warning(message=_SA_DECLARATIVE_BASE_WARNING), \
+                    supress_warning(message=_SA_MAPPER_WARNING):
+                manager = self.versioning_manager
+                if manager.pending_classes:
+                    manager.builder.configure_versioned_classes()
+                elif 'transaction' not in database.metadata.tables:
+                    manager.declarative_base = database.Model
+                    manager.create_transaction_model()
+                    manager.plugins.after_build_tx_class(manager)
 
     def init_versioning(self, app, database, versioning_manager=None):
         """Initialize the versioning support using SQLAlchemy-Continuum."""
